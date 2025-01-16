@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Timers;
 using System.ComponentModel;
 using System.Configuration;
 using System.IO;
@@ -11,6 +12,9 @@ using ICSharpCode.AvalonEdit.Search;
 using Text_Editor.Properties;
 using System.Windows.Media;
 using System.Linq;
+using System.Windows.Documents;
+using ICSharpCode.AvalonEdit.Document;
+using ICSharpCode.AvalonEdit.Rendering;
 
 namespace Text_Editor
 {
@@ -18,13 +22,22 @@ namespace Text_Editor
     {
         private bool _hasTextChanged = false;
         private string _fileName = "";
-        private string _dialogFileTypes = "Text file (*.txt)|*.txt|All files|*.*|C# file (*.cs)|*.cs|C++ file (*.cpp)|*.cpp||C file (*.c)|*.c|";
+        private readonly string _dialogFileTypes = "Text file (*.txt)|*.txt|All files|*.*|C# file (*.cs)|*.cs|C++ file (*.cpp)|*.cpp||C file (*.c)|*.c|";
+        //private bool isBold = false;
+        //private bool isItalic = false;
+        //private bool isUnderline = false;
+        private System.Timers.Timer AutoSaveTimer;
 
         public MainWindow()
         {
             InitializeComponent();
+            
             TxtBoxDoc.FontSize = 14;
             FillFontFamilyComboBox(FontFamilyComboBox);
+
+            AutoSaveTimer = new System.Timers.Timer(2000);
+            AutoSaveTimer.Elapsed += AutoSaveDocument;
+            AutoSaveTimer.AutoReset = false;
         }
 
         #region FileHandlers
@@ -51,6 +64,7 @@ namespace Text_Editor
             _hasTextChanged = false;
         }
 
+        #region MenuFunc
         private void MenuNew_Click(object sender, RoutedEventArgs e)
         {
             SaveBeforeClosing_Prompt();
@@ -74,7 +88,6 @@ namespace Text_Editor
             string fileType;
             byte indexfileType;
 
-            // Change syntax upon detecting file name
             switch (_fileName.Substring(_fileName.LastIndexOf('.') + 1))
             {
                 case ("cs"):
@@ -169,11 +182,6 @@ namespace Text_Editor
             return saveDlg;
         }
 
-        private void TxtBoxDoc_TextChanged(object sender, EventArgs e)
-        {
-            _hasTextChanged = true;
-        }
-
         private void MenuExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
@@ -187,6 +195,41 @@ namespace Text_Editor
                 e.Cancel = true;
 
             Properties.Settings.Default.Save();
+        }
+
+        private void Bold_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Italic_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Underlining_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+        #endregion
+
+        private void TxtBoxDoc_TextChanged(object sender, EventArgs e)
+        {
+            _hasTextChanged = true;
+            AutoSaveTimer.Stop();
+            AutoSaveTimer.Start();
+        }
+
+        private void AutoSaveDocument(object sender, ElapsedEventArgs e)
+        {
+            if (!_fileName.Equals("") && File.Exists(_fileName))
+            {
+                try
+                {
+                    File.WriteAllText(_fileName, TxtBoxDoc.Text);
+                }
+                catch(Exception ex) { }
+            }
         }
         #endregion
 
@@ -249,10 +292,7 @@ namespace Text_Editor
         //FontFamily
         private void FillFontFamilyComboBox(ComboBox comboBoxFonts)
         {
-            foreach (FontFamily fontFamily in Fonts.SystemFontFamilies)
-            {
-                comboBoxFonts.Items.Add(fontFamily.Source);
-            }
+            FontFamilyComboBox.ItemsSource = Fonts.SystemFontFamilies;
             comboBoxFonts.SelectedIndex = 0;
         }
 
@@ -288,19 +328,44 @@ namespace Text_Editor
             }
         }
 
-        private void ChangeFontFamily(string fontFamily)
+        private void FontFamilyComboBox_KeyUp(object sender, KeyEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(fontFamily))
+            if (e.Key == Key.Enter)
             {
-                try
+                if (sender is ComboBox comboBox)
                 {
-                    TxtBoxDoc.FontFamily = new FontFamily(fontFamily);
-                }
-                catch (Exception)
-                {
-                    
+                    string selectedFont = comboBox.Text;
+                    ChangeFontFamily(selectedFont);
                 }
             }
+        }
+
+        private void ResetFontFamily()
+        {
+            FontFamilyComboBox.Text = TxtBoxDoc.FontFamily.Source;
+        }
+
+        private void ChangeFontFamily(string fontFamily)
+        {
+            if (string.IsNullOrWhiteSpace(fontFamily))
+            {
+                ResetFontFamily();
+                return;
+            }
+
+            // Попробуем найти шрифт в ComboBox
+            foreach (var item in FontFamilyComboBox.Items)
+            {
+                if (item is FontFamily ff && ff.Source.Equals(fontFamily, StringComparison.OrdinalIgnoreCase))
+                {
+                    TxtBoxDoc.FontFamily = ff;
+                    FontFamilyComboBox.Text = ff.Source;
+                    return;
+                }
+            }
+
+            // Если ничего не найдено, сбросим шрифт
+            ResetFontFamily();
         }
         #endregion
 

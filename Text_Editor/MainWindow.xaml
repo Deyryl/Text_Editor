@@ -103,6 +103,16 @@
                     <Image Source="./Resources/Save.png"/>
                 </Button>
                 <Separator/>
+                <Button ToolTip="Bold" Click="Bold_Click">
+                    <Image Source="./Resources/Bold.png"/>
+                </Button>
+                <Button ToolTip="Italic" Click="Italic_Click">
+                    <Image Source="./Resources/Italic.png"/>
+                </Button>
+                <Button ToolTip="Underlining" Click="Underlining_Click">
+                    <Image Source="./Resources/Underlining.png"/>
+                </Button>
+                <Separator/>
                 <Label Content="Font size:"/>
                 <ComboBox x:Name="comboFontSize" Width="50" IsEditable="True"
                           DropDownClosed="ComboFontSize_DropDownClosed" KeyUp="ComboFontSize_KeyUp"
@@ -126,9 +136,10 @@
                     <ComboBoxItem Content="C++"/>
                 </ComboBox>
                 <Separator/>
-                <ComboBox x:Name="FontFamilyComboBox" Width="160" IsEditable="True" 
+                <ComboBox x:Name="FontFamilyComboBox" Width="140" IsEditable="True" 
                     DropDownClosed="FontFamilyComboBox_DropDownClosed" 
-                    LostFocus="FontFamilyComboBox_LostFocus" />
+                    LostFocus="FontFamilyComboBox_LostFocus" 
+                    KeyUp="FontFamilyComboBox_KeyUp"/>
             </ToolBar>
         </ToolBarTray>
 
