@@ -109,9 +109,6 @@
                 <Button ToolTip="Italic" Click="Italic_Click">
                     <Image Source="./Resources/Italic.png"/>
                 </Button>
-                <Button ToolTip="Underlining" Click="Underlining_Click">
-                    <Image Source="./Resources/Underlining.png"/>
-                </Button>
                 <Separator/>
                 <Label Content="Font size:"/>
                 <ComboBox x:Name="comboFontSize" Width="50" IsEditable="True"
@@ -142,6 +139,10 @@
                     KeyUp="FontFamilyComboBox_KeyUp"/>
             </ToolBar>
         </ToolBarTray>
+
+        <TabControl Margin="2 0 2 0"  DockPanel.Dock="Top" Height="24">
+            <TabItem Height="20" VerticalAlignment="Center"/>
+        </TabControl>
 
         <avalonedit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
             Name="TxtBoxDoc" DockPanel.Dock="Bottom"

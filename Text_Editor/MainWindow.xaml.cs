@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Timers;
 using System.ComponentModel;
 using System.Configuration;
 using System.IO;
@@ -15,6 +14,7 @@ using System.Linq;
 using System.Windows.Documents;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Rendering;
+using System.Windows.Threading;
 
 namespace Text_Editor
 {
@@ -22,11 +22,15 @@ namespace Text_Editor
     {
         private bool _hasTextChanged = false;
         private string _fileName = "";
-        private readonly string _dialogFileTypes = "Text file (*.txt)|*.txt|All files|*.*|C# file (*.cs)|*.cs|C++ file (*.cpp)|*.cpp||C file (*.c)|*.c|";
-        //private bool isBold = false;
-        //private bool isItalic = false;
-        //private bool isUnderline = false;
-        private System.Timers.Timer AutoSaveTimer;
+        private readonly string _dialogFileTypes =  "All files|*.*|" + 
+                                                    "Text file (*.txt)|*.txt|" +
+                                                    "C# file (*.cs)|*.cs|" +
+                                                    "C++ file (*.cpp)|*.cpp|" +
+                                                    "C file (*.c)|*.c|" +
+                                                    "Header file (*.h)|*.h";
+        private bool _isBold = false;
+        private bool _isItalic = false;
+        private DispatcherTimer _autoSaveTimer;
 
         public MainWindow()
         {
@@ -34,10 +38,14 @@ namespace Text_Editor
             
             TxtBoxDoc.FontSize = 14;
             FillFontFamilyComboBox(FontFamilyComboBox);
+            TxtBoxDoc.FontFamily = (FontFamily)FontFamilyComboBox.SelectedItem;
 
-            AutoSaveTimer = new System.Timers.Timer(2000);
-            AutoSaveTimer.Elapsed += AutoSaveDocument;
-            AutoSaveTimer.AutoReset = false;
+            _autoSaveTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(3)
+            };
+            _autoSaveTimer.Tick += AutoSaveTimer_Tick!;
+            _autoSaveTimer.Start();
         }
 
         #region FileHandlers
@@ -95,6 +103,10 @@ namespace Text_Editor
                     indexfileType = 1;
                     break;
                 case ("cpp"):
+                    fileType = "C++";
+                    indexfileType = 2;
+                    break;
+                case ("h"):
                     fileType = "C++";
                     indexfileType = 2;
                     break;
@@ -199,36 +211,30 @@ namespace Text_Editor
 
         private void Bold_Click(object sender, RoutedEventArgs e)
         {
-
+            if (_isBold) TxtBoxDoc.FontWeight = FontWeights.Normal;
+            else TxtBoxDoc.FontWeight = FontWeights.Bold;
+            _isBold = !_isBold;
         }
 
         private void Italic_Click(object sender, RoutedEventArgs e)
         {
-
-        }
-
-        private void Underlining_Click(object sender, RoutedEventArgs e)
-        {
-
+            if (_isItalic) TxtBoxDoc.FontStyle = FontStyles.Normal;
+            else TxtBoxDoc.FontStyle = FontStyles.Italic;
+            _isItalic = !_isItalic;
         }
         #endregion
 
         private void TxtBoxDoc_TextChanged(object sender, EventArgs e)
         {
             _hasTextChanged = true;
-            AutoSaveTimer.Stop();
-            AutoSaveTimer.Start();
         }
 
-        private void AutoSaveDocument(object sender, ElapsedEventArgs e)
+        private void AutoSaveTimer_Tick(object sender, EventArgs e)
         {
-            if (!_fileName.Equals("") && File.Exists(_fileName))
+            if (_hasTextChanged && !string.IsNullOrWhiteSpace(_fileName))
             {
-                try
-                {
-                    File.WriteAllText(_fileName, TxtBoxDoc.Text);
-                }
-                catch(Exception ex) { }
+                SaveFile();
+                _hasTextChanged = false;
             }
         }
         #endregion

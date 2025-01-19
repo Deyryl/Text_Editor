@@ -15,7 +15,6 @@
     <None Remove="Resources\New.png" />
     <None Remove="Resources\Open.png" />
     <None Remove="Resources\Save.png" />
-    <None Remove="Resources\Underlining.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,9 +38,6 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\Save.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resources\Underlining.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>
