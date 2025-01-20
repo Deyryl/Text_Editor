@@ -15,14 +15,17 @@ using System.Windows.Documents;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Rendering;
 using System.Windows.Threading;
+using System.Collections.ObjectModel;
+using Text_Editor.AuxiliaryClasses;
+using System.Runtime.CompilerServices;
+using System.Windows.Forms.Design;
 
 namespace Text_Editor
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private bool _hasTextChanged = false;
-        private string _fileName = "";
-        private readonly string _dialogFileTypes =  "All files|*.*|" + 
+        private const int MAX_COUNT_OF_TABS = 12;
+        private readonly string _dialogFileTypes = "All files|*.*|" +
                                                     "Text file (*.txt)|*.txt|" +
                                                     "C# file (*.cs)|*.cs|" +
                                                     "C++ file (*.cpp)|*.cpp|" +
@@ -31,63 +34,162 @@ namespace Text_Editor
         private bool _isBold = false;
         private bool _isItalic = false;
         private DispatcherTimer _autoSaveTimer;
+        private Tab _selectedTab;
+        public Tab SelectedTab
+        {
+            get => _selectedTab;
+            set
+            {
+                if (_selectedTab != value)
+                {
+                    _selectedTab = value;
+                    OnPropertyChanged(nameof(SelectedTab));
+                    LoadTextToEditor();
+                }
+            }
+        }
+        public ObservableCollection<Tab> Tabs { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
-            
+
+            DataContext = this;
+
+            //TextBox
             TxtBoxDoc.FontSize = 14;
             FillFontFamilyComboBox(FontFamilyComboBox);
             TxtBoxDoc.FontFamily = (FontFamily)FontFamilyComboBox.SelectedItem;
 
+            //Инициализация вкладок
+            Tabs = new ObservableCollection<Tab>();
+            NewTab(null, "Default.txt");
+
+            //Инициализация таймера
             _autoSaveTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(3)
+                Interval = TimeSpan.FromSeconds(10)
             };
             _autoSaveTimer.Tick += AutoSaveTimer_Tick!;
             _autoSaveTimer.Start();
         }
 
-        #region FileHandlers
-        private void SaveBeforeClosing_Prompt()
+        private void NewTab(string? text, string fileName)
         {
-            if (_hasTextChanged)
+            if (NewTabIsValid())
             {
-                MessageBoxResult messageBoxResult = MessageBox.Show("Do you want to save before closing?", "Closing", MessageBoxButton.YesNoCancel);
+                Tabs.Add(new Tab(text, fileName));
+                SelectedTab = Tabs.Last();
+                SelectedTab.HasTextChanged = false;
+            }
+        }
 
-                switch (messageBoxResult)
+        private void CloseTab(Tab tab)
+        {
+            if (Tabs.Contains(tab))
+            {
+                if (Tabs.Count <= 1)
                 {
-                    case MessageBoxResult.Yes:
-                        SaveFile();
+                    NewFile();
+                }
+                Tabs.Remove(tab);
+            }
+        }
+
+        private bool NewTabIsValid()
+        {
+            return Tabs.Count + 1 <= MAX_COUNT_OF_TABS;
+        }
+
+        private bool ClosingAllTabs()
+        {
+            while (Tabs.Count > 0)
+            {
+                if (Tabs.Last().HasTextChanged)
+                {
+                    if (!SaveBeforeClosing_Prompt(Tabs.Last()))
                         break;
-                    case MessageBoxResult.No:
-                        NewFile();
-                        break;
-                    default:
-                        return;
+                }
+                else Tabs.Remove(Tabs.Last());
+            }
+            return Tabs.Count > 0;
+        }
+
+        private void LoadTextToEditor()
+        {
+            if (SelectedTab != null)
+                TxtBoxDoc.Text = SelectedTab.Text;
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LoadTextToEditor();
+        }
+
+        private void CloseTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is Tab tabToClose)
+            {
+                if (tabToClose.HasTextChanged)
+                {
+                    SaveBeforeClosing_Prompt(tabToClose);
+                }
+                else
+                {
+                    CloseTab(tabToClose);
+                }
+
+                if (SelectedTab == tabToClose)
+                {
+                    SelectedTab = Tabs.Last();
                 }
             }
+        }
 
-            TxtBoxDoc.Clear();
-            _hasTextChanged = false;
+        #region FileHandlers
+        private bool SaveBeforeClosing_Prompt(Tab tabToClose)
+        {
+            MessageBoxResult result = MessageBox.Show(
+                "Do you want to save changes to the " + tabToClose.Header + "?",
+                "Save Changes",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Question);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    SelectedTab = tabToClose;
+                    SaveFile();
+                    if (!tabToClose.HasTextChanged)
+                        CloseTab(tabToClose);
+                    break;
+                case MessageBoxResult.No:
+                    CloseTab(tabToClose);
+                    break;
+                case MessageBoxResult.Cancel:
+                    return false;
+            }
+            return true;
         }
 
         #region MenuFunc
         private void MenuNew_Click(object sender, RoutedEventArgs e)
         {
-            SaveBeforeClosing_Prompt();
-            NewFile();
+            NewFile("");
         }
 
-        private void NewFile()
+        private void NewFile(string header="Default.txt")
         {
-            _fileName = "";
-            _hasTextChanged = false;
+            if (!NewTabIsValid())
+            {
+                ActionIsNotValidMsg("Number of tabs exceeded");
+                return;
+            }
+            NewTab("", header);
         }
 
         private void MenuOpen_Click(object sender, RoutedEventArgs e)
         {
-            SaveBeforeClosing_Prompt();
             OpenFile();
         }
 
@@ -96,7 +198,9 @@ namespace Text_Editor
             string fileType;
             byte indexfileType;
 
-            switch (_fileName.Substring(_fileName.LastIndexOf('.') + 1))
+            switch (SelectedTab.FileName.
+                    Substring(SelectedTab.FileName.
+                    LastIndexOf('.') + 1))
             {
                 case ("cs"):
                     fileType = "C#";
@@ -107,6 +211,10 @@ namespace Text_Editor
                     indexfileType = 2;
                     break;
                 case ("h"):
+                    fileType = "C++";
+                    indexfileType = 2;
+                    break;
+                case ("c"):
                     fileType = "C++";
                     indexfileType = 2;
                     break;
@@ -122,30 +230,35 @@ namespace Text_Editor
 
         private void OpenFile()
         {
+            if (!NewTabIsValid())
+            {
+                ActionIsNotValidMsg("Number of tabs exceeded");
+                return;
+            }
+
             OpenFileDialog openDlg = new OpenFileDialog
             {
                 Filter = _dialogFileTypes,
-
-                InitialDirectory = File.Exists(_fileName) ?
-                    _fileName.Remove(_fileName.LastIndexOf('\\')) :
+                InitialDirectory = File.Exists(SelectedTab?.FileName) ?
+                    Path.GetDirectoryName(SelectedTab.FileName) :
                     Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
             };
 
             if (openDlg.ShowDialog() == true)
             {
-                TxtBoxDoc.Text = File.ReadAllText(openDlg.FileName);
-                _fileName = openDlg.FileName;
+                string text = File.ReadAllText(openDlg.FileName);
+                NewTab(text, openDlg.FileName);
                 DetectSyntaxAndChange();
-                _hasTextChanged = false;
             }
         }
 
-        public void OpenFile(string filePath)
+        private void ActionIsNotValidMsg(string msg)
         {
-            TxtBoxDoc.Text = File.ReadAllText(filePath);
-            _fileName = filePath;
-            DetectSyntaxAndChange();
-            _hasTextChanged = false;
+            MessageBoxResult result = MessageBox.Show(
+                msg, "ERROR", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Error
+            );
         }
 
         private void MenuSave_Click(object sender, RoutedEventArgs e)
@@ -160,9 +273,9 @@ namespace Text_Editor
 
         private void SaveFile(bool saveAs = false)
         {
-            if (File.Exists(_fileName) && !saveAs)
+            if (File.Exists(SelectedTab.FileName) && !saveAs)
             {
-                File.WriteAllText(_fileName, TxtBoxDoc.Text);
+                File.WriteAllText(SelectedTab.FileName, TxtBoxDoc.Text);
                 return;
             }
 
@@ -171,8 +284,8 @@ namespace Text_Editor
             if (saveDlg.ShowDialog() == true)
             {
                 File.WriteAllText(saveDlg.FileName, TxtBoxDoc.Text);
-                _fileName = saveDlg.FileName;
-                _hasTextChanged = false;
+                SelectedTab.FileName = saveDlg.FileName;
+                SelectedTab.HasTextChanged = false;
                 DetectSyntaxAndChange();
             }
         }
@@ -183,13 +296,15 @@ namespace Text_Editor
             {
                 Filter = _dialogFileTypes,
 
-                InitialDirectory = File.Exists(_fileName) ?
-                    _fileName.Remove(_fileName.LastIndexOf('\\')) :
+                InitialDirectory = File.Exists(SelectedTab.FileName) ?
+                    SelectedTab.FileName.Remove(SelectedTab.FileName.LastIndexOf('\\')) :
                     Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
 
                 DefaultExt = "txt",
                 AddExtension = true,
-                FileName = _fileName.LastIndexOf('\\') != -1 ? _fileName.Substring(_fileName.LastIndexOf('\\') + 1) : _fileName
+                FileName = SelectedTab.FileName.LastIndexOf('\\') != -1 ? 
+                    SelectedTab.FileName.Substring(SelectedTab.FileName.LastIndexOf('\\') + 1) : 
+                    SelectedTab.FileName
             };
             return saveDlg;
         }
@@ -201,9 +316,7 @@ namespace Text_Editor
 
         private void MainWindow_OnClosing(object sender, CancelEventArgs e)
         {
-            SaveBeforeClosing_Prompt();
-
-            if (_hasTextChanged)
+            if (ClosingAllTabs())
                 e.Cancel = true;
 
             Properties.Settings.Default.Save();
@@ -218,23 +331,27 @@ namespace Text_Editor
 
         private void Italic_Click(object sender, RoutedEventArgs e)
         {
-            if (_isItalic) TxtBoxDoc.FontStyle = FontStyles.Normal;
-            else TxtBoxDoc.FontStyle = FontStyles.Italic;
+            if (_isItalic) 
+                TxtBoxDoc.FontStyle = FontStyles.Normal;
+            else 
+                TxtBoxDoc.FontStyle = FontStyles.Italic;
             _isItalic = !_isItalic;
         }
         #endregion
 
         private void TxtBoxDoc_TextChanged(object sender, EventArgs e)
         {
-            _hasTextChanged = true;
+            SelectedTab.HasTextChanged = true;
+            SelectedTab.Text = TxtBoxDoc.Text;
         }
 
         private void AutoSaveTimer_Tick(object sender, EventArgs e)
         {
-            if (_hasTextChanged && !string.IsNullOrWhiteSpace(_fileName))
+            if (SelectedTab.HasTextChanged && 
+                File.Exists(SelectedTab.FileName))
             {
                 SaveFile();
-                _hasTextChanged = false;
+                SelectedTab.HasTextChanged = false;
             }
         }
         #endregion
@@ -373,6 +490,12 @@ namespace Text_Editor
             // Если ничего не найдено, сбросим шрифт
             ResetFontFamily();
         }
+
+        //EncodingComboBox
+        private void EncodingComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
         #endregion
 
         #region View
@@ -428,5 +551,12 @@ namespace Text_Editor
             aboutWindow.Show();
         }
         #endregion
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

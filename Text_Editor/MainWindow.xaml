@@ -10,6 +10,7 @@
         xmlns:avalonedit="http://icsharpcode.net/sharpdevelop/avalonedit"
         mc:Ignorable="d"
         Title="Text editor" Height="400" Width="600" Closing="MainWindow_OnClosing"
+        Icon="./Resources/Logo.png"
         WindowStartupLocation="CenterScreen">
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Replace" Executed="Replace_Executed"
@@ -127,7 +128,7 @@
                     <ComboBoxItem Content="72"/>
                 </ComboBox>
                 <Separator/>
-                <ComboBox x:Name="syntaxComboBox" Width="100" DropDownClosed="SyntaxComboBox_OnDropDownClosed">
+                <ComboBox x:Name="syntaxComboBox" Width="50" DropDownClosed="SyntaxComboBox_OnDropDownClosed">
                     <ComboBoxItem Content="Text" IsSelected="True"/>
                     <ComboBoxItem Content="C#"/>
                     <ComboBoxItem Content="C++"/>
@@ -137,12 +138,37 @@
                     DropDownClosed="FontFamilyComboBox_DropDownClosed" 
                     LostFocus="FontFamilyComboBox_LostFocus" 
                     KeyUp="FontFamilyComboBox_KeyUp"/>
+                <Separator/>
+                <!--<ComboBox x:Name="EncodingComboBox" Width="80" SelectionChanged="EncodingComboBox_SelectionChanged">
+                    <ComboBoxItem Content="UTF-8" Tag="65001"/>
+                    <ComboBoxItem Content="UTF-16" Tag="1200"/>
+                    <ComboBoxItem Content="UTF-32" Tag="12000"/>
+                    <ComboBoxItem Content="ASCII" Tag="20127"/>
+                    <ComboBoxItem Content="Windows-1251" Tag="1251"/>
+                    <ComboBoxItem Content="ISO-8859-1" Tag="28591"/>
+                </ComboBox>-->
             </ToolBar>
         </ToolBarTray>
 
-        <TabControl Margin="2 0 2 0"  DockPanel.Dock="Top" Height="24">
-            <TabItem Height="20" VerticalAlignment="Center"/>
-        </TabControl>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" DockPanel.Dock="Top"
+                      VerticalScrollBarVisibility="Disabled">
+            <TabControl ItemsSource="{Binding Tabs}"
+                SelectedItem="{Binding SelectedTab, Mode=TwoWay}" 
+                SelectionChanged="TabControl_SelectionChanged"
+                Margin="2 0 2 0"  Height="24">
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <TextBlock Text="{Binding Header}" Margin="5,0" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                            <Button Width="20" Height="20" VerticalAlignment="Center" Margin="5,0" 
+                            Click="CloseTab_Click">
+                                <Image Source="./Resources/close.png"/>
+                            </Button>
+                        </DockPanel>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+            </TabControl>
+        </ScrollViewer>
 
         <avalonedit:TextEditor xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
             Name="TxtBoxDoc" DockPanel.Dock="Bottom"

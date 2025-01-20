@@ -16,8 +16,7 @@ namespace Text_Editor
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             MainWindow window = new MainWindow();
-            if (e.Args.Length == 1 && File.Exists(e.Args[0]))
-                window.OpenFile(e.Args[0]);
+            
             window.Show();
         }
     }

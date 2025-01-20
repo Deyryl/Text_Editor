@@ -10,8 +10,11 @@
 
   <ItemGroup>
     <None Remove="Resources\Bold.png" />
+    <None Remove="Resources\close.png" />
     <None Remove="Resources\Icon.png" />
     <None Remove="Resources\Italic.png" />
+    <None Remove="Resources\Logo.png" />
+    <None Remove="Resources\Logo.svg" />
     <None Remove="Resources\New.png" />
     <None Remove="Resources\Open.png" />
     <None Remove="Resources\Save.png" />
@@ -25,10 +28,16 @@
     <Resource Include="Resources\Bold.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resources\close.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Resources\Icon.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\Italic.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Logo.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\New.png">
